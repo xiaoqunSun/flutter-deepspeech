@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:deepspeech/deepspeech.dart';
+import 'package:path_provider/path_provider.dart';
 
 void main() {
   runApp(MyApp());
@@ -53,11 +54,13 @@ class _MyAppState extends State<MyApp> {
     int modelIndex = await Deepspeech.createModel("deepspeech-0.8.0-models.tflite");
     Deepspeech.setScorer(modelIndex, "today_is_different.scorer", 0, 0);
     String error = await Deepspeech.getLastError();
+    
     // If the widget was removed from the tree while the asynchronous platform
     // message was in flight, we want to discard the reply rather than calling
     // setState to update our non-existent appearance.
     if (!mounted) return;
-
+   
+             
     setState(() {
       _error = error;
       _modelIndex = modelIndex;

@@ -103,7 +103,10 @@ extern "C" int WavToMp3(const char* wavPath, const char* mp3Path, int bitrate);
 }
 - (int)createModel:(NSString*)path
 {
-  NSString *newPath=[[NSBundle mainBundle] pathForResource:path ofType:nil];
+  NSString *newPath = path;
+  if(![path isAbsolutePath])
+    newPath=[[NSBundle mainBundle] pathForResource:path ofType:nil];
+  
   
   string pathKey = [newPath UTF8String];
   ModelState* ctx;
@@ -155,8 +158,10 @@ extern "C" int WavToMp3(const char* wavPath, const char* mp3Path, int bitrate);
      }
      else
      {
-       NSString *newPath=[[NSBundle mainBundle] pathForResource:path ofType:nil];
-       
+       NSString *newPath = path;
+       if(![path isAbsolutePath])
+         newPath=[[NSBundle mainBundle] pathForResource:path ofType:nil];
+          
        string pathKey = [newPath UTF8String];
        int status = DS_EnableExternalScorer(ctx,pathKey.c_str());
        if (status != 0)

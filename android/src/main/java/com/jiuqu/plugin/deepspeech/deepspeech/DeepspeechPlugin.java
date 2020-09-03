@@ -15,7 +15,11 @@ import io.flutter.plugin.common.EventChannel;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Map;
@@ -57,7 +61,7 @@ public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, Event
   public static native void NfreeModel(int modelIndex);
   public static native void NsetScorer(int modelIndex,String scorerPath,double alpha,double beta);
   public static native int NgetSampleRate(int modelIndex);
-  private final String TAG = "DeepspeechPlugin";
+  private static final String TAG = "DeepspeechPlugin";
   private String TFLITE_MODEL_FILENAME = "deepspeech-0.8.0-models.tflite";
   private String SCORER_FILENAME = "today_is_different.scorer";
   private int streamIndex = -1;
@@ -66,7 +70,7 @@ public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, Event
   private AudioRecord recorder = null;
   private String tmpFile;
   private String outFile;
-  private Context context;
+  public Context context;
   /// The MethodChannel that will the communication between Flutter and native Android
   ///
   /// This local reference serves to register the plugin with the Flutter Engine and unregister it
@@ -156,6 +160,47 @@ public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, Event
         }
     }).start();
   }
+  private static void copyAssetsToDst(Context context,String srcPath,String dstPath) 
+  {
+      try {
+          String fileNames[] =context.getAssets().list(srcPath);
+          if (fileNames.length > 0)
+          {
+              File file = new File(dstPath);
+              file.mkdirs();
+              for (String fileName : fileNames)
+              {
+                  if(srcPath.isEmpty())
+                  {
+                      copyAssetsToDst(context, fileName, dstPath+"/"+fileName);
+                  }
+                  else
+                  {
+                      copyAssetsToDst(context,srcPath + "/" + fileName, dstPath+"/"+fileName);
+                  }
+              }
+          }
+          else
+          {
+              File dstFile = new File(dstPath);
+
+              InputStream is = context.getAssets().open(srcPath);
+              FileOutputStream fos = new FileOutputStream(dstFile);
+              byte[] buffer = new byte[1024];
+              int byteCount=0;
+              while((byteCount=is.read(buffer))!=-1) {
+                  fos.write(buffer, 0, byteCount);
+              }
+              fos.flush();//刷新缓冲区
+              is.close();
+              fos.close();
+          }
+      } catch (Exception e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+          Log.d(TAG, "copyAssetsToDst exception " + srcPath + "->" + dstPath, e);
+      }
+    }
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
 
@@ -190,7 +235,7 @@ public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, Event
       } 
       case "startSpeech": {
         int modelIndex = call.argument("modelIndex");
-        boolean withMetadata = call.argument("withMetadata");;
+        boolean withMetadata = call.argument("withMetadata");
 
         this.startSpeech(modelIndex, withMetadata);
         result.success(outFile);
@@ -203,7 +248,24 @@ public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, Event
       } 
       case "resetError": {
         DeepspeechPlugin.NresetError();
-      }            
+      }
+      case "copyAssetsToDst": {
+        final String srcPath = call.argument("srcPath");
+        final String destPath = call.argument("destPath");
+        boolean asyn = call.argument("asyn");
+        final Context _context = this.context;
+        if(asyn)
+        {
+          new Thread(new Runnable() {
+            @Override
+            public void run() {
+              DeepspeechPlugin.copyAssetsToDst(_context, srcPath, destPath);
+            }
+          }).start();
+        }
+        else
+          DeepspeechPlugin.copyAssetsToDst(_context, srcPath, destPath);
+      }             
       default:
         result.notImplemented();
       break;

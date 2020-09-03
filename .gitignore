@@ -5,3 +5,5 @@
 .pub/
 
 build/
+example/android/app/src/main/assets/deepspeech-0.8.0-models.tflite
+example/android/app/src/main/assets/today_is_different.scorer
