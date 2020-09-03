@@ -14,6 +14,11 @@
 	<string>deepspeech_example</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+  
+  <key>NSMicrophoneUsageDescription</key>
+  <string>需要访问麦克风</string>
+  <key>NSPhotoLibraryUsageDescription</key>
+  <string>需要读取媒体资料库</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>

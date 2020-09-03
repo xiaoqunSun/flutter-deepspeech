@@ -1,0 +1,22 @@
+PODS:
+  - deepspeech (0.0.1):
+    - Flutter
+  - Flutter (1.0.0)
+
+DEPENDENCIES:
+  - deepspeech (from `.symlinks/plugins/deepspeech/ios`)
+  - Flutter (from `Flutter`)
+
+EXTERNAL SOURCES:
+  deepspeech:
+    :path: ".symlinks/plugins/deepspeech/ios"
+  Flutter:
+    :path: Flutter
+
+SPEC CHECKSUMS:
+  deepspeech: 8dd7d8420846812acca6132f0c8339f4cf77abd5
+  Flutter: 0e3d915762c693b495b44d77113d4970485de6ec
+
+PODFILE CHECKSUM: 8e679eca47255a8ca8067c4c67aab20e64cb974d
+
+COCOAPODS: 1.9.3
