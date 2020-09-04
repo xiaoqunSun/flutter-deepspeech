@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-
+import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:deepspeech/deepspeech.dart';
 import 'package:path_provider/path_provider.dart';
@@ -51,10 +51,30 @@ class _MyAppState extends State<MyApp> {
   // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> initPlatformState() async {
 
-    int modelIndex = await Deepspeech.createModel("deepspeech-0.8.0-models.tflite");
-    Deepspeech.setScorer(modelIndex, "today_is_different.scorer", 0, 0);
-    String error = await Deepspeech.getLastError();
+    String modelPath = "deepspeech-0.8.0-models.tflite";
+    String scorerPath = "today_is_different.scorer";
+    if(Platform.isAndroid){
+      //android相关代码
+      String dstPath = (await getExternalStorageDirectory()).path + '/' +modelPath;
+      String srcPath = modelPath;
+      Deepspeech.copyAssetsToDst(srcPath,dstPath,true,false);
+
+      modelPath = dstPath;
+
+
+      dstPath = (await getExternalStorageDirectory()).path + '/' + scorerPath;
+      srcPath = scorerPath;
+      Deepspeech.copyAssetsToDst(srcPath,dstPath,true,false);
+
+      scorerPath = dstPath;
+    }
+
+    int modelIndex = await Deepspeech.createModel(modelPath);
+    Deepspeech.setScorer(modelIndex, scorerPath, 0, 0);
     
+    String error = await Deepspeech.getLastError();
+
+
     // If the widget was removed from the tree while the asynchronous platform
     // message was in flight, we want to discard the reply rather than calling
     // setState to update our non-existent appearance.

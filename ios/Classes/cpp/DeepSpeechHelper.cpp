@@ -1,5 +1,11 @@
 #include "DeepSpeechHelper.h"
+#include <map>
+#include <string>
+#include <vector>
+#include <sstream>
+#include "deepspeech.h"
 #include "math.h"
+using namespace std;
 
 struct meta_word {
   std::string word;
@@ -75,7 +81,7 @@ CandidateTranscriptToJSON(const CandidateTranscript *transcript)
   return out_string.str();
 }
 
-string
+const char*
 MetadataToJSON(Metadata* result)
 {
   std::ostringstream out_string;
@@ -103,11 +109,11 @@ MetadataToJSON(Metadata* result)
   
   out_string << "\n}\n";
 
-  return out_string.str();
+  return out_string.str().c_str();
 }
 
 
-int pcm_db_count(const unsigned char* ptr, size_t size)
+int pcm_db_count(const unsigned char* ptr, int size)
 {
     int ndb = 0;
 

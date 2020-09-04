@@ -31,10 +31,13 @@ class Deepspeech {
   static Future<void>  startSpeech(int modelIndex,bool withMetadata,_onEvent,_onError) async {
     eventChannel.receiveBroadcastStream().listen(_onEvent, onError: _onError);
     await methodChannel.invokeMethod('startSpeech',{"modelIndex":modelIndex,"withMetadata":withMetadata});
-
-
   }
   static Future<String>  stopSpeech(bool withMetadata) async {
     return await methodChannel.invokeMethod('stopSpeech',{"withMetadata":withMetadata});
+  }
+
+  static Future<void>  copyAssetsToDst(String srcPath,String dstPath,bool force,bool asyn) async {
+     await methodChannel.invokeMethod('copyAssetsToDst',{"srcPath":srcPath,"dstPath":dstPath
+    ,"force":force,"asyn":asyn});
   }
 }

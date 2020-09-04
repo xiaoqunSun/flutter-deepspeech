@@ -18,8 +18,8 @@ add_library( # Sets the name of the library.
 
              # Provides a relative path to your source file(s).
              DeepSpeechJni.cpp 
-             ../../../../../cpp/DeepSpeechHelper.cpp
-             ../../../../../cpp/convert/convert.c ../../../../../cpp/convert/shine_mp3.c
+             ../../../../../ios/Classes/cpp/DeepSpeechHelper.cpp
+             ../../../../../ios/Classes/cpp/convert/convert.c ../../../../../ios/Classes/cpp/convert/shine_mp3.c
              )
 
 add_library( deepspeech-lib
@@ -34,7 +34,7 @@ set_target_properties( # Specifies the target library.
 
                            # Provides the path to the library you want to import.
                         ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libdeepspeech.so )
-include_directories("../../../../" )
+include_directories("../../../../ios/Classes/" )
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by

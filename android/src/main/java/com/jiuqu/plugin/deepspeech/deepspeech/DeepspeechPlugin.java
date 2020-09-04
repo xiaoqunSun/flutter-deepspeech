@@ -1,6 +1,9 @@
 package com.jiuqu.plugin.deepspeech.deepspeech;
 
 import androidx.annotation.NonNull;
+import android.app.Activity;
+import io.flutter.embedding.engine.plugins.activity.ActivityAware;
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.MethodCall;
@@ -37,7 +40,7 @@ import android.media.MediaRecorder;
 import android.content.Context;
 
 /** DeepspeechPlugin */
-public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, EventChannel.StreamHandler {
+public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, EventChannel.StreamHandler , ActivityAware{
 
   static {
     System.loadLibrary("cpp");
@@ -71,6 +74,7 @@ public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, Event
   private String tmpFile;
   private String outFile;
   public Context context;
+  public Activity activity;
   /// The MethodChannel that will the communication between Flutter and native Android
   ///
   /// This local reference serves to register the plugin with the Flutter Engine and unregister it
@@ -92,19 +96,48 @@ public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, Event
   @Override
   public void onListen(Object o, EventChannel.EventSink sink) {
       eventSink = sink;
+      Log.e(TAG, "onListen ");
   }
 
   @Override
   public void onCancel(Object o) {
       eventSink = null;
+       Log.e(TAG, "onCancel ");
   }
-  private void sendEvent(Map<String, Object> params) {
-        if (eventSink != null) {
-            eventSink.success(params);
-        }
+  private void sendEvent(final Map<String, Object> params) {
+        
+       
+        this.activity.runOnUiThread(new Runnable() {
+                        public void run() {
+                            if (eventSink != null) {
+                                eventSink.success(params);
+                            }
+                            Log.e(TAG, "sendEvent ");
+                        }
+        });
+       
+  }
+  @Override
+  public void onAttachedToActivity(@NonNull ActivityPluginBinding binding) {
+    this.activity = binding.getActivity();
   }
 
-  private void startSpeech(int modelIndex,final boolean withMetadata)
+  @Override
+  public void onDetachedFromActivityForConfigChanges() {
+    this.activity = null;
+  }
+
+  @Override
+  public void onReattachedToActivityForConfigChanges(@NonNull ActivityPluginBinding binding) {
+    this.activity = binding.getActivity();
+  }
+
+  @Override
+  public void onDetachedFromActivity() {
+    this.activity = null;
+  }
+
+  public void startSpeech(int modelIndex,final boolean withMetadata)
   {
     String documentDirectoryPath = this.context.getFilesDir().getAbsolutePath();
     outFile = documentDirectoryPath + "/" + "audio.wav";
@@ -112,7 +145,7 @@ public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, Event
     
     final int rate = DeepspeechPlugin.NgetSampleRate(modelIndex);
     streamIndex = DeepspeechPlugin.NcreateStream(modelIndex);
-    final AudioRecord recorder = new AudioRecord(
+    recorder = new AudioRecord(
                 MediaRecorder.AudioSource.VOICE_RECOGNITION,
                 rate,
                 AudioFormat.CHANNEL_IN_MONO,
@@ -146,6 +179,7 @@ public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, Event
                 String text =  DeepspeechPlugin.NfinishStream(streamIndex,withMetadata);
                 if(recorder != null)
                     recorder.stop();
+                recorder = null;
                 os.close();
                 saveAsWav(rate);
                 Map<String, Object> params = new HashMap<>();
@@ -160,8 +194,9 @@ public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, Event
         }
     }).start();
   }
-  private static void copyAssetsToDst(Context context,String srcPath,String dstPath) 
+  private static void copyAssetsToDst(Context context,String srcPath,String dstPath,boolean force) 
   {
+    Log.e(TAG, "copyAssetsToDst " + srcPath + "->" + dstPath);
       try {
           String fileNames[] =context.getAssets().list(srcPath);
           if (fileNames.length > 0)
@@ -172,18 +207,21 @@ public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, Event
               {
                   if(srcPath.isEmpty())
                   {
-                      copyAssetsToDst(context, fileName, dstPath+"/"+fileName);
+                      copyAssetsToDst(context, fileName, dstPath+"/"+fileName,force);
                   }
                   else
                   {
-                      copyAssetsToDst(context,srcPath + "/" + fileName, dstPath+"/"+fileName);
+                      copyAssetsToDst(context,srcPath + "/" + fileName, dstPath+"/"+fileName,force);
                   }
               }
           }
           else
           {
               File dstFile = new File(dstPath);
-
+              if(dstFile.exists() && !force){
+                    Log.e(TAG, "skip file " + dstPath);
+                    return;
+                }
               InputStream is = context.getAssets().open(srcPath);
               FileOutputStream fos = new FileOutputStream(dstFile);
               byte[] buffer = new byte[1024];
@@ -198,7 +236,7 @@ public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, Event
       } catch (Exception e) {
           // TODO Auto-generated catch block
           e.printStackTrace();
-          Log.d(TAG, "copyAssetsToDst exception " + srcPath + "->" + dstPath, e);
+          Log.e(TAG, "copyAssetsToDst exception " + srcPath + "->" + dstPath, e);
       }
     }
   @Override
@@ -221,10 +259,13 @@ public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, Event
       case "createModel": {
         String path = call.argument("path");
         int ret = DeepspeechPlugin.NcreateModel(path);
+        result.success(ret);
+        break;
       }
       case "freeModel": {
         int modelIndex = call.argument("modelIndex");
         DeepspeechPlugin.NfreeModel(modelIndex);
+        break;
       }
       case "setScorer": {
         int modelIndex = call.argument("modelIndex");
@@ -232,6 +273,7 @@ public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, Event
         double alpha = call.argument("alpha");
         double beta = call.argument("beta");
         DeepspeechPlugin.NsetScorer(modelIndex,path,alpha,beta);
+        break;
       } 
       case "startSpeech": {
         int modelIndex = call.argument("modelIndex");
@@ -239,32 +281,39 @@ public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, Event
 
         this.startSpeech(modelIndex, withMetadata);
         result.success(outFile);
+        break;
       }
       case "stopSpeech": {
         isRecording = false;
+        break;
       } 
       case "getLastError": {
         result.success(DeepspeechPlugin.NgetLastError());
+        break;
       } 
       case "resetError": {
         DeepspeechPlugin.NresetError();
+        break;
       }
       case "copyAssetsToDst": {
         final String srcPath = call.argument("srcPath");
-        final String destPath = call.argument("destPath");
+        final String dstPath = call.argument("dstPath");
         boolean asyn = call.argument("asyn");
+        final boolean force = call.argument("force");
         final Context _context = this.context;
         if(asyn)
         {
           new Thread(new Runnable() {
             @Override
             public void run() {
-              DeepspeechPlugin.copyAssetsToDst(_context, srcPath, destPath);
+              DeepspeechPlugin.copyAssetsToDst(_context, srcPath, dstPath,force);
             }
           }).start();
         }
         else
-          DeepspeechPlugin.copyAssetsToDst(_context, srcPath, destPath);
+          DeepspeechPlugin.copyAssetsToDst(_context, srcPath, dstPath,force);
+
+        break;  
       }             
       default:
         result.notImplemented();
@@ -292,8 +341,8 @@ public class DeepspeechPlugin implements FlutterPlugin, MethodCallHandler, Event
             while ((bytesRead = in.read(data)) != -1) {
                 out.write(data, 0, bytesRead);
             }
-            Log.d(TAG, "file path:" + outFile);
-            Log.d(TAG, "file size:" + out.getChannel().size());
+            Log.e(TAG, "file path:" + outFile);
+            Log.e(TAG, "file size:" + out.getChannel().size());
 
             in.close();
             out.close();

@@ -56,7 +56,7 @@ extern "C"
 
     JNIEXPORT void JNICALL CLS_NAME(NresetError)(JNIEnv *env, jobject)
     {
-        s_lastError = "no errror";
+        s_lastError = "no error";
     }
 
     JNIEXPORT int JNICALL CLS_NAME(NgetSampleRate)(JNIEnv *env, jobject, int modelIndex)
@@ -81,7 +81,10 @@ extern "C"
         {
             char *error = DS_ErrorCodeToErrorMessage(status);
             if (error)
+            {
                 s_lastError = error;
+                s_lastError = s_lastError + JavaToStdString(env, path);
+            }    
             free(error);
             return 0;
         }
@@ -128,7 +131,7 @@ extern "C"
             {
                 int status = DS_EnableExternalScorer(ctx, JavaToStdString(env, scorerPath).c_str());
                 if (status != 0)
-                    s_lastError = "Could not enable external scorer.\n";
+                    s_lastError = "Could not enable external scorer.\n" + JavaToStdString(env, scorerPath);
                 else
                 {
                     if (alpha > 0.001 && beta > 0.001)
